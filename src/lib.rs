@@ -1,4 +1,4 @@
-//! A crate for parsing the [MNIST](http://yann.lecun.com/exdb/mnist/) data set into matricies to be
+//! A crate for parsing the [MNIST](http://yann.lecun.com/exdb/mnist/) data set into vectors to be
 //!  used by Rust programs.
 //!
 //! ## About the MNIST Database
@@ -30,14 +30,16 @@
 //! * Test Set - Used after the training process to determine if the classifier has actually learned
 //! something.
 //!
-//! Each set of data contains a matrix representing the image and a matrix representing the label.
+//! Each set of data contains a vector representing the image and a vector representing the label.
+//! The vectors are always completely flattened. For example, the default image test set contains
+//! 60,000 images. Therefore the vector size will be
+//! 60,000 images x 28 rows x 28 cols = 47,040,000 elements in the vector.
 //!
 //! A [MnistBuilder](struct.MnistBuilder.html) struct is used to configure how to format the MNIST
 //! data, retrieves the data, and returns the [Mnist](struct.Mnist.html) struct. Configuration
 //! options include:
 //!
 //! * where to look for the MNIST data files.
-//! * how to format the image matricies.
 //! * how to format the label matricies.
 //! * how to partition the data between the training, validation, and test sets.
 //!
@@ -50,18 +52,22 @@
 //! use rulinalg::matrix::{BaseMatrix, BaseMatrixMut, Matrix};
 //!
 //! fn main() {
-//!     // Deconstruct the returnded Mnist struct.
+//!     let (trn_size, rows, cols) = (50_000, 28, 28);
+//!
+//!     // Deconstruct the returned Mnist struct.
 //!     let Mnist { trn_img, trn_lbl, .. } = MnistBuilder::new()
-//!         .image_format_28x28()
-//!         .label_format_1x1()
-//!         .training_set_length(50_000)
+//!         .label_format_digit()
+//!         .training_set_length(trn_size)
 //!         .validation_set_length(10_000)
 //!         .test_set_length(10_000)
 //!         .finalize();
 //!
 //!     // Get the label of the first digit.
-//!     let first_label = trn_lbl[[0, 0]];
+//!     let first_label = trn_lbl[0];
 //!     println!("The first digit is a {}.", first_label);
+//!
+//!     // Convert the flattened training images vector to a matrix.
+//!     let trn_img = Matrix::new((trn_size * rows) as usize, cols as usize, trn_img);
 //!
 //!     // Get the image of the first digit.
 //!     let row_indexes = (0..27).collect::<Vec<_>>();
@@ -81,7 +87,6 @@
 #![doc(test(attr(allow(unused_variables), deny(warnings))))]
 
 extern crate byteorder;
-extern crate rulinalg;
 
 mod tests;
 
@@ -89,7 +94,6 @@ use byteorder::{BigEndian, ReadBytesExt};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use rulinalg::matrix::Matrix;
 
 static BASE_PATH: &'static str = "data/";
 static TRN_IMG_FILENAME: &'static str = "train-images.idx3-ubyte";
@@ -105,31 +109,28 @@ static ROWS: usize = 28;
 static COLS: usize = 28;
 
 #[derive(Debug)]
-/// Struct containing image and label matricies for the training, validation, and test sets.
+/// Struct containing image and label vectors for the training, validation, and test sets.
 pub struct Mnist {
-    /// The training images matrix.
-    pub trn_img: Matrix<u8>,
-    /// The training labels matrix.
-    pub trn_lbl: Matrix<u8>,
-    /// The validation images matrix.
-    pub val_img: Matrix<u8>,
-    /// The validation labels matrix.
-    pub val_lbl: Matrix<u8>,
-    /// The test images matrix.
-    pub tst_img: Matrix<u8>,
-    /// The test labels matrix.
-    pub tst_lbl: Matrix<u8>,
+    /// The training images vector.
+    pub trn_img: Vec<u8>,
+    /// The training labels vector.
+    pub trn_lbl: Vec<u8>,
+    /// The validation images vector.
+    pub val_img: Vec<u8>,
+    /// The validation labels vector.
+    pub val_lbl: Vec<u8>,
+    /// The test images vector.
+    pub tst_img: Vec<u8>,
+    /// The test labels vector.
+    pub tst_lbl: Vec<u8>,
 }
 
 #[derive(Debug)]
 /// Struct used for configuring how to load the MNIST data.
 ///
-/// * img_format - Specify how to format the image matricies. Options include:
-///     * 1x784 (default) - the 28x28 image is flattened to a 1x784 vector.
-///     * 28x28 - the 28x28 image is left as a 28x28 matrix.
-/// * lbl_format - Specify how to format the label matricies. Options include:
-///     * 1x1 (default) - a single number from 0-9 representing the corresponding digit.
-///     * 1x10 - a 1x10 one-hot vector of all 0's except for a 1 at the index of the digit.
+/// * lbl_format - Specify how to format the label vectors. Options include:
+///     * Digit (default) - a single number from 0-9 representing the corresponding digit.
+///     * OneHotVector - a 1x10 one-hot vector of all 0's except for a 1 at the index of the digit.
 ///         * ex.) `3 -> [0, 0, 0, 1, 0, 0, 0, 0, 0, 0]`
 /// * trn_len - the length of the training set `(default = 60,000)`
 /// * val_len - the length of the validation set `(default = 0)`
@@ -145,7 +146,6 @@ pub struct Mnist {
 /// * tst_lbl_filename - the filename of the test labels data file.
 /// `(default = "t10k-labels.idx1-ubyte")`
 pub struct MnistBuilder<'a> {
-    img_format: ImageFormat,
     lbl_format: LabelFormat,
     trn_len: u32,
     val_len: u32,
@@ -168,8 +168,7 @@ impl<'a> MnistBuilder<'a> {
     /// ```
     pub fn new() -> MnistBuilder<'a> {
         MnistBuilder {
-            img_format: ImageFormat::Dimensions1x784,
-            lbl_format: LabelFormat::Dimensions1x1,
+            lbl_format: LabelFormat::Digit,
             trn_len: TRN_LEN,
             val_len: 0,
             tst_len: TST_LEN,
@@ -181,45 +180,17 @@ impl<'a> MnistBuilder<'a> {
         }
     }
 
-    /// Set the image format to 1x784.
-    ///
-    /// # Examples
-    /// ```rust,no_run
-    /// # use mnist::MnistBuilder;
-    /// let mnist = MnistBuilder::new()
-    ///     .image_format_1x784()
-    ///     .finalize();
-    /// ```
-    pub fn image_format_1x784(&mut self) -> &mut MnistBuilder<'a> {
-        self.img_format = ImageFormat::Dimensions1x784;
-        self
-    }
-
-    /// Set the image format to 28x28.
-    ///
-    /// # Examples
-    /// ```rust,no_run
-    /// # use mnist::MnistBuilder;
-    /// let mnist = MnistBuilder::new()
-    ///     .image_format_28x28()
-    ///     .finalize();
-    /// ```
-    pub fn image_format_28x28(&mut self) -> &mut MnistBuilder<'a> {
-        self.img_format = ImageFormat::Dimensions28x28;
-        self
-    }
-
     /// Set the labels format to scalar.
     ///
     /// # Examples
     /// ```rust,no_run
     /// # use mnist::MnistBuilder;
     /// let mnist = MnistBuilder::new()
-    ///     .label_format_1x1()
+    ///     .label_format_digit()
     ///     .finalize();
     /// ```
-    pub fn label_format_1x1(&mut self) -> &mut MnistBuilder<'a> {
-        self.lbl_format = LabelFormat::Dimensions1x1;
+    pub fn label_format_digit(&mut self) -> &mut MnistBuilder<'a> {
+        self.lbl_format = LabelFormat::Digit;
         self
     }
 
@@ -229,11 +200,11 @@ impl<'a> MnistBuilder<'a> {
     /// ```rust,no_run
     /// # use mnist::MnistBuilder;
     /// let mnist = MnistBuilder::new()
-    ///     .label_format_1x10()
+    ///     .label_format_one_hot()
     ///     .finalize();
     /// ```
-    pub fn label_format_1x10(&mut self) -> &mut MnistBuilder<'a> {
-        self.lbl_format = LabelFormat::Dimensions1x10;
+    pub fn label_format_one_hot(&mut self) -> &mut MnistBuilder<'a> {
+        self.lbl_format = LabelFormat::OneHotVector;
         self
     }
 
@@ -386,43 +357,22 @@ impl<'a> MnistBuilder<'a> {
         let mut tst_lbl = val_lbl.split_off(val_len);
         tst_img.split_off(tst_len * ROWS * COLS);
         tst_lbl.split_off(tst_len);
-        let (trn_img, val_img, tst_img) = match self.img_format {
-            ImageFormat::Dimensions1x784 => {
-                (Matrix::new(trn_len, ROWS * COLS, trn_img),
-                 Matrix::new(val_len, ROWS * COLS, val_img),
-                 Matrix::new(tst_len, ROWS * COLS, tst_img))
+        if self.lbl_format == LabelFormat::OneHotVector {
+            fn digit2one_hot(v: Vec<u8>) -> Vec<u8> {
+                v.iter()
+                    .map(|&i| {
+                        let mut v = vec![0; CLASSES as usize];
+                        v[i as usize] = 1;
+                        v
+                    })
+                    .flat_map(|e| e)
+                    .collect()
             }
-            ImageFormat::Dimensions28x28 => {
-                (Matrix::new(trn_len * ROWS, COLS, trn_img),
-                 Matrix::new(val_len * ROWS, COLS, val_img),
-                 Matrix::new(tst_len * ROWS, COLS, tst_img))
-            }
-        };
-        let (trn_lbl, val_lbl, tst_lbl) = match self.lbl_format {
-            LabelFormat::Dimensions1x1 => {
-                (Matrix::new(trn_len, 1, trn_lbl),
-                 Matrix::new(val_len, 1, val_lbl),
-                 Matrix::new(tst_len, 1, tst_lbl))
-            }
-            LabelFormat::Dimensions1x10 => {
-                fn scalar_vector2one_hot_vector(v: Vec<u8>) -> Vec<u8> {
-                    v.iter()
-                        .map(|&i| {
-                            let mut v = vec![0; CLASSES as usize];
-                            v[i as usize] = 1;
-                            v
-                        })
-                        .flat_map(|e| e)
-                        .collect()
-                }
-                let trn_lbl: Vec<_> = scalar_vector2one_hot_vector(trn_lbl);
-                let val_lbl: Vec<_> = scalar_vector2one_hot_vector(val_lbl);
-                let tst_lbl: Vec<_> = scalar_vector2one_hot_vector(tst_lbl);
-                (Matrix::new(trn_len, CLASSES, trn_lbl),
-                 Matrix::new(val_len, CLASSES, val_lbl),
-                 Matrix::new(tst_len, CLASSES, tst_lbl))
-            }
-        };
+            trn_lbl = digit2one_hot(trn_lbl);
+            val_lbl = digit2one_hot(val_lbl);
+            tst_lbl = digit2one_hot(tst_lbl);
+        }
+
         Mnist {
             trn_img: trn_img,
             trn_lbl: trn_lbl,
@@ -434,16 +384,10 @@ impl<'a> MnistBuilder<'a> {
     }
 }
 
-#[derive(Debug)]
-enum ImageFormat {
-    Dimensions1x784,
-    Dimensions28x28,
-}
-
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum LabelFormat {
-    Dimensions1x1,
-    Dimensions1x10,
+    Digit,
+    OneHotVector,
 }
 
 fn labels(path: &Path, expected_length: u32) -> Vec<u8> {

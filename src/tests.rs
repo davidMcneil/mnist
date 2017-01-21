@@ -1,22 +1,28 @@
 #![cfg(test)]
 
+extern crate rulinalg;
+
 use super::*;
-use rulinalg::matrix::{BaseMatrix, BaseMatrixMut, Matrix};
+use self::rulinalg::matrix::{BaseMatrix, BaseMatrixMut, Matrix};
 
 #[test]
 fn test_example() {
-    // Deconstruct the returnded Mnist struct.
+    let (trn_size, rows, cols) = (50_000, 28, 28);
+
+    // Deconstruct the returned Mnist struct.
     let Mnist { trn_img, trn_lbl, .. } = MnistBuilder::new()
-        .image_format_28x28()
-        .label_format_1x1()
-        .training_set_length(50_000)
+        .label_format_digit()
+        .training_set_length(trn_size)
         .validation_set_length(10_000)
         .test_set_length(10_000)
         .finalize();
 
     // Get the label of the first digit.
-    let first_label = trn_lbl[[0, 0]];
+    let first_label = trn_lbl[0];
     println!("The first digit is a {}.", first_label);
+
+    // Convert the flattened training images vector to a matrix.
+    let trn_img = Matrix::new((trn_size * rows) as usize, cols as usize, trn_img);
 
     // Get the image of the first digit.
     let row_indexes = (0..27).collect::<Vec<_>>();
@@ -35,49 +41,36 @@ fn test_example() {
 #[test]
 fn test_00() {
     let mnist = MnistBuilder::new().finalize();
-    assert!(mnist.trn_img.rows() == 60_000);
-    assert!(mnist.trn_img.cols() == 784);
-    assert!(mnist.trn_lbl.rows() == 60_000);
-    assert!(mnist.trn_lbl.cols() == 1);
-    assert!(mnist.val_img.rows() == 0);
-    assert!(mnist.val_img.cols() == 784);
-    assert!(mnist.val_lbl.rows() == 0);
-    assert!(mnist.val_lbl.cols() == 1);
-    assert!(mnist.tst_img.rows() == 10_000);
-    assert!(mnist.tst_img.cols() == 784);
-    assert!(mnist.tst_lbl.rows() == 10_000);
-    assert!(mnist.tst_lbl.cols() == 1);
-    assert!(mnist.trn_lbl[[0, 0]] == 5);
-    assert!(mnist.tst_lbl[[0, 0]] == 7);
+    assert!(mnist.trn_img.len() == 60_000 * 28 * 28);
+    assert!(mnist.trn_lbl.len() == 60_000);
+    assert!(mnist.val_img.len() == 0);
+    assert!(mnist.val_lbl.len() == 0);
+    assert!(mnist.tst_img.len() == 10_000 * 28 * 28);
+    assert!(mnist.tst_lbl.len() == 10_000);
+    assert!(mnist.trn_lbl[0] == 5);
+    assert!(mnist.tst_lbl[0] == 7);
 }
 
 #[test]
 fn test_01() {
     let mnist = MnistBuilder::new()
-        .image_format_28x28()
-        .label_format_1x10()
+        .label_format_one_hot()
         .training_set_length(50_000)
         .validation_set_length(10_000)
         .test_set_length(10_000)
         .finalize();
-    assert!(mnist.trn_img.rows() == 50_000 * 28);
-    assert!(mnist.trn_img.cols() == 28);
-    assert!(mnist.trn_lbl.rows() == 50_000);
-    assert!(mnist.trn_lbl.cols() == 10);
-    assert!(mnist.val_img.rows() == 10_000 * 28);
-    assert!(mnist.val_img.cols() == 28);
-    assert!(mnist.val_lbl.rows() == 10_000);
-    assert!(mnist.val_lbl.cols() == 10);
-    assert!(mnist.tst_img.rows() == 10_000 * 28);
-    assert!(mnist.tst_img.cols() == 28);
-    assert!(mnist.tst_lbl.rows() == 10_000);
-    assert!(mnist.tst_lbl.cols() == 10);
-    assert!(mnist.trn_lbl[[0, 0]] == 0);
-    assert!(mnist.trn_lbl[[0, 9]] == 0);
-    assert!(mnist.trn_lbl[[0, 5]] == 1);
-    assert!(mnist.tst_lbl[[0, 0]] == 0);
-    assert!(mnist.tst_lbl[[0, 9]] == 0);
-    assert!(mnist.tst_lbl[[0, 7]] == 1);
+    assert!(mnist.trn_img.len() == 50_000 * 28 * 28);
+    assert!(mnist.trn_lbl.len() == 50_000 * 10);
+    assert!(mnist.val_img.len() == 10_000 * 28 * 28);
+    assert!(mnist.val_lbl.len() == 10_000 * 10);
+    assert!(mnist.tst_img.len() == 10_000 * 28 * 28);
+    assert!(mnist.tst_lbl.len() == 10_000 * 10);
+    assert!(mnist.trn_lbl[0] == 0);
+    assert!(mnist.trn_lbl[9] == 0);
+    assert!(mnist.trn_lbl[5] == 1);
+    assert!(mnist.tst_lbl[0] == 0);
+    assert!(mnist.tst_lbl[9] == 0);
+    assert!(mnist.tst_lbl[7] == 1);
 }
 
 #[test]
@@ -127,8 +120,7 @@ fn test_05() {
 #[test]
 fn test_06() {
     let mnist = MnistBuilder::new()
-        .image_format_28x28()
-        .label_format_1x10()
+        .label_format_one_hot()
         .training_set_length(50_000)
         .validation_set_length(10_000)
         .test_set_length(10_000)
@@ -138,20 +130,14 @@ fn test_06() {
         .test_images_filename("test_images")
         .test_labels_filename("test_labels")
         .finalize();
-    assert!(mnist.trn_img.rows() == 50_000 * 28);
-    assert!(mnist.trn_img.cols() == 28);
-    assert!(mnist.trn_lbl.rows() == 50_000);
-    assert!(mnist.trn_lbl.cols() == 10);
-    assert!(mnist.val_img.rows() == 10_000 * 28);
-    assert!(mnist.val_img.cols() == 28);
-    assert!(mnist.val_lbl.rows() == 10_000);
-    assert!(mnist.val_lbl.cols() == 10);
-    assert!(mnist.tst_img.rows() == 10_000 * 28);
-    assert!(mnist.tst_img.cols() == 28);
-    assert!(mnist.tst_lbl.rows() == 10_000);
-    assert!(mnist.tst_lbl.cols() == 10);
-    assert!(mnist.trn_lbl[[0, 5]] == 1);
-    assert!(mnist.tst_lbl[[0, 7]] == 1);
+    assert!(mnist.trn_img.len() == 50_000 * 28 * 28);
+    assert!(mnist.trn_lbl.len() == 50_000 * 10);
+    assert!(mnist.val_img.len() == 10_000 * 28 * 28);
+    assert!(mnist.val_lbl.len() == 10_000 * 10);
+    assert!(mnist.tst_img.len() == 10_000 * 28 * 28);
+    assert!(mnist.tst_lbl.len() == 10_000 * 10);
+    assert!(mnist.trn_lbl[5] == 1);
+    assert!(mnist.tst_lbl[7] == 1);
 }
 
 #[test]

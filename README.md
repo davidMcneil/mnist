@@ -1,5 +1,5 @@
 # MNIST
-A crate for parsing the [MNIST](http://yann.lecun.com/exdb/mnist/) data set into matricies to be
+A crate for parsing the [MNIST](http://yann.lecun.com/exdb/mnist/) data set into vectors to be
 used by Rust programs.
 
 * [Crate](https://crates.io/crates/mnist)
