@@ -409,8 +409,17 @@ fn labels(path: &Path, expected_length: u32) -> Vec<u8> {
 }
 
 fn images(path: &Path, expected_length: u32) -> Vec<u8> {
-    let mut file = File::open(path)
-        .expect(&format!("Unable to find path to images at {:?}.", path));
+    // Read whole file in memory
+    let mut content: Vec<u8> = Vec::new();
+    let mut file = {
+        let mut fh = File::open(path)
+            .expect(&format!("Unable to find path to images at {:?}.", path));
+        let _ = fh.read_to_end(&mut content).expect(&format!("Unable to read whole file in memory ({})", path.display()));
+        // The read_u32() method, coming from the byteorder crate's ReadBytesExt trait, cannot be
+        // used with a `Vec` directly, it requires a slice.
+        &content[..]
+    };
+
     let magic_number = file.read_u32::<BigEndian>()
         .expect(&format!("Unable to read magic number from {:?}.", path));
     assert!(IMG_MAGIC_NUMBER == magic_number,
@@ -431,5 +440,6 @@ fn images(path: &Path, expected_length: u32) -> Vec<u8> {
         .expect(&format!("Unable to number of columns from {:?}.", path)) as usize;
     assert!(COLS == cols,
             format!("Expected cols length of {} got {}.", COLS, cols));
-    file.bytes().map(|b| b.unwrap()).collect()
+    // Convert `file` from a Vec to a slice.
+    file.to_vec()
 }
