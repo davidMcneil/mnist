@@ -138,13 +138,13 @@ pub struct Mnist {
 /// * base_path - the path to the directory in which to look for the MNIST data files.
 /// `(default = "data/")`
 /// * trn_img_filename - the filename of the training images data file.
-/// `(default = "train-images.idx3-ubyte")`
+/// `(default = "train-images-idx3-ubyte")`
 /// * trn_lbl_filename - the filename of the training labels data file.
-/// `(default = "train-labels.idx1-ubyte")`
+/// `(default = "train-labels-idx1-ubyte")`
 /// * tst_img_filename - the filename of the test images data file.
-/// `(default = "10k-images.idx3-ubyte")`
+/// `(default = "10k-images-idx3-ubyte")`
 /// * tst_lbl_filename - the filename of the test labels data file.
-/// `(default = "t10k-labels.idx1-ubyte")`
+/// `(default = "t10k-labels-idx1-ubyte")`
 pub struct MnistBuilder<'a> {
     lbl_format: LabelFormat,
     trn_len: u32,
