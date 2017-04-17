@@ -153,7 +153,7 @@ fn test_07() {
 
 #[test]
 #[should_panic(
-    expected = "Unable to find path to images at \"wrong/path/train-images.idx3-ubyte\".")]
+    expected = "Unable to find path to images at \"wrong/path/train-images-idx3-ubyte\".")]
 fn test_08() {
     let _ = MnistBuilder::new()
         .base_path("wrong/path")

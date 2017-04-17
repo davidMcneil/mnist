@@ -96,10 +96,10 @@ use std::io::prelude::*;
 use std::path::Path;
 
 static BASE_PATH: &'static str = "data/";
-static TRN_IMG_FILENAME: &'static str = "train-images.idx3-ubyte";
-static TRN_LBL_FILENAME: &'static str = "train-labels.idx1-ubyte";
-static TST_IMG_FILENAME: &'static str = "t10k-images.idx3-ubyte";
-static TST_LBL_FILENAME: &'static str = "t10k-labels.idx1-ubyte";
+static TRN_IMG_FILENAME: &'static str = "train-images-idx3-ubyte";
+static TRN_LBL_FILENAME: &'static str = "train-labels-idx1-ubyte";
+static TST_IMG_FILENAME: &'static str = "t10k-images-idx3-ubyte";
+static TST_LBL_FILENAME: &'static str = "t10k-labels-idx1-ubyte";
 static IMG_MAGIC_NUMBER: u32 = 0x00000803;
 static LBL_MAGIC_NUMBER: u32 = 0x00000801;
 static TRN_LEN: u32 = 60000;
