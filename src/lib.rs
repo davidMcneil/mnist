@@ -359,6 +359,16 @@ impl<'a> MnistBuilder<'a> {
     /// # Panics
     /// If `trn_len + val_len + tst_len > 70,000`.
     pub fn finalize(&self) -> Mnist {
+        if self.download_and_extract {
+            #[cfg(feature = "download")]
+            download::download_and_extract(&self.base_path).unwrap();
+            #[cfg(not(feature = "download"))]
+            {
+                println!("WARNING: Download disabled.");
+                println!("         Please use the mnist crate's 'download' feature to enable.");
+            }
+        }
+
         let &MnistBuilder { trn_len, val_len, tst_len, .. } = self;
         let (trn_len, val_len, tst_len) = (trn_len as usize, val_len as usize, tst_len as usize);
         let total_length = trn_len + val_len + tst_len;
