@@ -88,6 +88,7 @@
 
 extern crate byteorder;
 
+mod download;
 mod tests;
 
 use byteorder::{BigEndian, ReadBytesExt};
@@ -155,6 +156,7 @@ pub struct MnistBuilder<'a> {
     trn_lbl_filename: &'a str,
     tst_img_filename: &'a str,
     tst_lbl_filename: &'a str,
+    download_and_extract: bool,
 }
 
 impl<'a> MnistBuilder<'a> {
@@ -177,6 +179,7 @@ impl<'a> MnistBuilder<'a> {
             trn_lbl_filename: TRN_LBL_FILENAME,
             tst_img_filename: TST_IMG_FILENAME,
             tst_lbl_filename: TST_LBL_FILENAME,
+            download_and_extract: false,
         }
     }
 
@@ -320,6 +323,29 @@ impl<'a> MnistBuilder<'a> {
         self
     }
 
+    // #[cfg(feature = "download")]
+    /// Download and extract MNIST dataset if not present.
+    ///
+    /// If archives are already present, they will not be downloaded.
+    ///
+    /// If datasets are already present, they will not be extracted.
+    ///
+    /// Note that this requires the 'download' feature to be enabled
+    /// (disabled by default).
+    ///
+    /// # Examples
+    /// ```rust,no_run
+    /// # use mnist::MnistBuilder;
+    /// let mnist = MnistBuilder::new()
+    ///     .download_and_extract()
+    ///     .finalize();
+    /// ```
+    pub fn download_and_extract(&mut self) -> &mut MnistBuilder<'a> {
+        self.download_and_extract = true;
+
+        self
+    }
+
     /// Get the data according to the specified configuration.
     ///
     ///
@@ -333,6 +359,16 @@ impl<'a> MnistBuilder<'a> {
     /// # Panics
     /// If `trn_len + val_len + tst_len > 70,000`.
     pub fn finalize(&self) -> Mnist {
+        if self.download_and_extract {
+            #[cfg(feature = "download")]
+            download::download_and_extract(&self.base_path).unwrap();
+            #[cfg(not(feature = "download"))]
+            {
+                println!("WARNING: Download disabled.");
+                println!("         Please use the mnist crate's 'download' feature to enable.");
+            }
+        }
+
         let &MnistBuilder { trn_len, val_len, tst_len, .. } = self;
         let (trn_len, val_len, tst_len) = (trn_len as usize, val_len as usize, tst_len as usize);
         let total_length = trn_len + val_len + tst_len;
