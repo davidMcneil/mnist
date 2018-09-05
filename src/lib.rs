@@ -155,6 +155,7 @@ pub struct MnistBuilder<'a> {
     trn_lbl_filename: &'a str,
     tst_img_filename: &'a str,
     tst_lbl_filename: &'a str,
+    download_and_extract: bool,
 }
 
 impl<'a> MnistBuilder<'a> {
@@ -177,6 +178,7 @@ impl<'a> MnistBuilder<'a> {
             trn_lbl_filename: TRN_LBL_FILENAME,
             tst_img_filename: TST_IMG_FILENAME,
             tst_lbl_filename: TST_LBL_FILENAME,
+            download_and_extract: false,
         }
     }
 
@@ -317,6 +319,29 @@ impl<'a> MnistBuilder<'a> {
     /// ```
     pub fn test_labels_filename(&mut self, tst_lbl_filename: &'a str) -> &mut MnistBuilder<'a> {
         self.tst_lbl_filename = tst_lbl_filename;
+        self
+    }
+
+    // #[cfg(feature = "download")]
+    /// Download and extract MNIST dataset if not present.
+    ///
+    /// If archives are already present, they will not be downloaded.
+    ///
+    /// If datasets are already present, they will not be extracted.
+    ///
+    /// Note that this requires the 'download' feature to be enabled
+    /// (disabled by default).
+    ///
+    /// # Examples
+    /// ```rust,no_run
+    /// # use mnist::MnistBuilder;
+    /// let mnist = MnistBuilder::new()
+    ///     .download_and_extract()
+    ///     .finalize();
+    /// ```
+    pub fn download_and_extract(&mut self) -> &mut MnistBuilder<'a> {
+        self.download_and_extract = true;
+
         self
     }
 
