@@ -24,6 +24,16 @@ fn main() {
         .test_set_length(10_000)
         .finalize();
 
+    // Call `normalize()` on the return value of `finalize()` to get
+    // Vec<f32> normalized values for the pixels instead of grayscale (bytes):
+    // let NormalizedMnist { trn_img, trn_lbl, .. } = MnistBuilder::new()
+    //     .label_format_digit()
+    //     .training_set_length(trn_size)
+    //     .validation_set_length(10_000)
+    //     .test_set_length(10_000)
+    //     .finalize()
+    //     .normalize();
+
     // Get the label of the first digit.
     let first_label = trn_lbl[0];
     println!("The first digit is a {}.", first_label);
