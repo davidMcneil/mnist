@@ -88,6 +88,7 @@
 
 extern crate byteorder;
 
+mod download;
 mod tests;
 
 use byteorder::{BigEndian, ReadBytesExt};
