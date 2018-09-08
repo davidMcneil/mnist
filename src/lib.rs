@@ -420,6 +420,59 @@ impl<'a> MnistBuilder<'a> {
     }
 }
 
+impl Mnist {
+    /// Create a `NormalizedMnist` by consuming an `Mnist`.
+    ///
+    /// # Examples
+    /// ```rust,no_run
+    /// # use mnist::{MnistBuilder, NormalizedMnist};
+    /// let normalized_mnist: NormalizedMnist = MnistBuilder::new()
+    ///    .finalize()
+    ///    .normalize();
+    /// ```
+    pub fn normalize(self) -> NormalizedMnist {
+        NormalizedMnist::new(self)
+    }
+}
+
+#[derive(Debug)]
+/// Struct containing (normalized) image and label vectors for the training, validation, and test sets.
+pub struct NormalizedMnist {
+    pub trn_img: Vec<f32>,
+    pub trn_lbl: Vec<u8>,
+    pub val_img: Vec<f32>,
+    pub val_lbl: Vec<u8>,
+    pub tst_img: Vec<f32>,
+    pub tst_lbl: Vec<u8>,
+}
+
+impl NormalizedMnist {
+    /// Create a `NormalizedMnist` by consuming an `Mnist`.
+    ///
+    /// # Examples
+    /// ```rust,no_run
+    /// # use mnist::{MnistBuilder, NormalizedMnist};
+    /// let normalized_mnist: NormalizedMnist = MnistBuilder::new()
+    ///    .finalize()
+    ///    .normalize();
+    /// ```
+    pub fn new(mnist: Mnist) -> NormalizedMnist {
+        NormalizedMnist {
+            trn_img: normalize_vector(&mnist.trn_img),
+            trn_lbl: mnist.trn_lbl,
+            val_img: normalize_vector(&mnist.val_img),
+            val_lbl: mnist.val_lbl,
+            tst_img: normalize_vector(&mnist.tst_img),
+            tst_lbl: mnist.tst_lbl,
+        }
+    }
+}
+
+/// Normalize a vector of bytes as 32-bit floats.
+fn normalize_vector(v: &Vec<u8>) -> Vec<f32> {
+    v.iter().map(|&pixel| (pixel as f32) / 255.0_f32).collect()
+}
+
 #[derive(Debug, PartialEq)]
 enum LabelFormat {
     Digit,

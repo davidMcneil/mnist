@@ -195,3 +195,26 @@ fn test_12() {
         .test_labels_filename("test")
         .finalize();
 }
+
+#[test]
+fn normalize_vector() {
+    use super::normalize_vector;
+
+    let v: Vec<u8> = vec![0, 1, 2, 127, 128, 129, 254, 255];
+    let normalized_v: Vec<f32> = normalize_vector(&v);
+    let expected: Vec<f32> = vec![
+        0.0,
+        0.00392157,
+        0.00784314,
+        0.49803922,
+        0.50196078,
+        0.50588235,
+        0.99607843,
+        1.0,
+    ];
+
+    expected
+        .iter()
+        .zip(normalized_v.iter())
+        .for_each(|(value, expected)| assert!((value - expected).abs() < 1.0e-6));
+}
