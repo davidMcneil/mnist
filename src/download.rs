@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::{fs, io};
 
 const BASE_URL: &str = "http://yann.lecun.com/exdb/mnist";
+const FASHION_BASE_URL: &str = "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com";
 const ARCHIVE_TRAIN_IMAGES: &str = "train-images-idx3-ubyte.gz";
 const ARCHIVE_TRAIN_LABELS: &str = "train-labels-idx1-ubyte.gz";
 const ARCHIVE_TEST_IMAGES: &str = "t10k-images-idx3-ubyte.gz";
@@ -19,7 +20,7 @@ const ARCHIVES_TO_DOWNLOAD: &[&str] = &[
     ARCHIVE_TEST_LABELS,
 ];
 
-pub(super) fn download_and_extract(base_path: &str) -> Result<(), String> {
+pub(super) fn download_and_extract(base_path: &str, use_fashion_data: bool) -> Result<(), String> {
     let download_dir = PathBuf::from(base_path);
     if !download_dir.exists() {
         println!(
@@ -35,14 +36,18 @@ pub(super) fn download_and_extract(base_path: &str) -> Result<(), String> {
     }
     for archive in ARCHIVES_TO_DOWNLOAD {
         println!("Attempting to download and extract {}...", archive);
-        download(&archive, &download_dir)?;
+        download(&archive, &download_dir, use_fashion_data)?;
         extract(&archive, &download_dir)?;
     }
     Ok(())
 }
 
-fn download(archive: &str, download_dir: &Path) -> Result<(), String> {
-    let url = format!("{}/{}", BASE_URL, archive);
+fn download(archive: &str, download_dir: &Path, use_fashion_data: bool) -> Result<(), String> {
+    let url = match use_fashion_data {
+        false => format!("{}/{}", BASE_URL, archive),
+        true => format!("{}/{}", FASHION_BASE_URL, archive),
+    };
+
     let file_name = download_dir.join(&archive);
     if file_name.exists() {
         println!(
@@ -55,7 +60,8 @@ fn download(archive: &str, download_dir: &Path) -> Result<(), String> {
             .or_else(|e| Err(format!("Failed to create file {:?}: {:?}", file_name, e)))?;
         let mut writer = io::BufWriter::new(f);
         let mut response =
-            reqwest::get(&url).or_else(|e| Err(format!("Failed to download {:?}: {:?}", url, e)))?;
+            reqwest::blocking::get(&url).expect(format!("Failed to download {:?}", url).as_str());
+
         let _ = io::copy(&mut response, &mut writer).or_else(|e| {
             Err(format!(
                 "Failed to to write to file {:?}: {:?}",
