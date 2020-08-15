@@ -62,7 +62,7 @@ drop-in replacement dataset for the original MNIST set, but typically poses a mo
 
 An example of downloading this dataset may be found by running: 
 ```sh
-$ cargo --release --features download --example fashion_mnist
+$ cargo run --features download --example fashion_mnist
 ```
 This example uses the [minifb](https://github.com/emoon/rust_minifb) library to display the parsed images,
 and may require the installation of certain dependencies. On an Ubuntu-like system, this may be done via:
