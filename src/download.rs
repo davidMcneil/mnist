@@ -27,7 +27,7 @@ pub(super) fn download_and_extract(base_path: &str, use_fashion_data: bool) -> R
             "Download directory {} does not exists. Creating....",
             download_dir.display()
         );
-        fs::create_dir(&download_dir).or_else(|e| {
+        fs::create_dir_all(&download_dir).or_else(|e| {
             Err(format!(
                 "Failed to create directory {:?}: {:?}",
                 download_dir, e
