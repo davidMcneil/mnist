@@ -75,5 +75,8 @@ fn return_item_description_from_number(val: u8) {
         9 => "Ankle boot",
         _ => panic!("An unrecognized label was used..."),
     };
-    println!("Based on the '{}' label, this image should be a: {} ", val, description);
+    println!(
+        "Based on the '{}' label, this image should be a: {} ",
+        val, description
+    );
 }
