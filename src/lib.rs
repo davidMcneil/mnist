@@ -96,13 +96,13 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-static BASE_PATH: &'static str = "data/";
-static TRN_IMG_FILENAME: &'static str = "train-images-idx3-ubyte";
-static TRN_LBL_FILENAME: &'static str = "train-labels-idx1-ubyte";
-static TST_IMG_FILENAME: &'static str = "t10k-images-idx3-ubyte";
-static TST_LBL_FILENAME: &'static str = "t10k-labels-idx1-ubyte";
-static IMG_MAGIC_NUMBER: u32 = 0x00000803;
-static LBL_MAGIC_NUMBER: u32 = 0x00000801;
+static BASE_PATH: &str = "data/";
+static TRN_IMG_FILENAME: &str = "train-images-idx3-ubyte";
+static TRN_LBL_FILENAME: &str = "train-labels-idx1-ubyte";
+static TST_IMG_FILENAME: &str = "t10k-images-idx3-ubyte";
+static TST_LBL_FILENAME: &str = "t10k-labels-idx1-ubyte";
+static IMG_MAGIC_NUMBER: u32 = 0x0000_0803;
+static LBL_MAGIC_NUMBER: u32 = 0x0000_0801;
 static TRN_LEN: u32 = 60000;
 static TST_LEN: u32 = 10000;
 static CLASSES: usize = 10;
@@ -434,7 +434,7 @@ impl<'a> MnistBuilder<'a> {
                         v[i as usize] = 1;
                         v
                     })
-                    .flat_map(|e| e)
+                    .flatten()
                     .collect()
             }
             trn_lbl = digit2one_hot(trn_lbl);
@@ -443,13 +443,19 @@ impl<'a> MnistBuilder<'a> {
         }
 
         Mnist {
-            trn_img: trn_img,
-            trn_lbl: trn_lbl,
-            val_img: val_img,
-            val_lbl: val_lbl,
-            tst_img: tst_img,
-            tst_lbl: tst_lbl,
+            trn_img,
+            trn_lbl,
+            val_img,
+            val_lbl,
+            tst_img,
+            tst_lbl,
         }
+    }
+}
+
+impl Default for MnistBuilder<'_> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -502,7 +508,7 @@ impl NormalizedMnist {
 }
 
 /// Normalize a vector of bytes as 32-bit floats.
-fn normalize_vector(v: &Vec<u8>) -> Vec<f32> {
+fn normalize_vector(v: &[u8]) -> Vec<f32> {
     v.iter().map(|&pixel| (pixel as f32) / 255.0_f32).collect()
 }
 
@@ -514,10 +520,10 @@ enum LabelFormat {
 
 fn labels(path: &Path, expected_length: u32) -> Vec<u8> {
     let mut file =
-        File::open(path).expect(&format!("Unable to find path to labels at {:?}.", path));
+        File::open(path).unwrap_or_else(|_| panic!("Unable to find path to labels at {:?}.", path));
     let magic_number = file
         .read_u32::<BigEndian>()
-        .expect(&format!("Unable to read magic number from {:?}.", path));
+        .unwrap_or_else(|_| panic!("Unable to read magic number from {:?}.", path));
     assert!(
         LBL_MAGIC_NUMBER == magic_number,
         format!(
@@ -527,7 +533,7 @@ fn labels(path: &Path, expected_length: u32) -> Vec<u8> {
     );
     let length = file
         .read_u32::<BigEndian>()
-        .expect(&format!("Unable to length from {:?}.", path));
+        .unwrap_or_else(|_| panic!("Unable to length from {:?}.", path));
     assert!(
         expected_length == length,
         format!(
@@ -542,12 +548,11 @@ fn images(path: &Path, expected_length: u32) -> Vec<u8> {
     // Read whole file in memory
     let mut content: Vec<u8> = Vec::new();
     let mut file = {
-        let mut fh =
-            File::open(path).expect(&format!("Unable to find path to images at {:?}.", path));
-        let _ = fh.read_to_end(&mut content).expect(&format!(
-            "Unable to read whole file in memory ({})",
-            path.display()
-        ));
+        let mut fh = File::open(path)
+            .unwrap_or_else(|_| panic!("Unable to find path to images at {:?}.", path));
+        let _ = fh
+            .read_to_end(&mut content)
+            .unwrap_or_else(|_| panic!("Unable to read whole file in memory ({})", path.display()));
         // The read_u32() method, coming from the byteorder crate's ReadBytesExt trait, cannot be
         // used with a `Vec` directly, it requires a slice.
         &content[..]
@@ -555,7 +560,7 @@ fn images(path: &Path, expected_length: u32) -> Vec<u8> {
 
     let magic_number = file
         .read_u32::<BigEndian>()
-        .expect(&format!("Unable to read magic number from {:?}.", path));
+        .unwrap_or_else(|_| panic!("Unable to read magic number from {:?}.", path));
     assert!(
         IMG_MAGIC_NUMBER == magic_number,
         format!(
@@ -565,7 +570,7 @@ fn images(path: &Path, expected_length: u32) -> Vec<u8> {
     );
     let length = file
         .read_u32::<BigEndian>()
-        .expect(&format!("Unable to length from {:?}.", path));
+        .unwrap_or_else(|_| panic!("Unable to length from {:?}.", path));
     assert!(
         expected_length == length,
         format!(
@@ -575,14 +580,16 @@ fn images(path: &Path, expected_length: u32) -> Vec<u8> {
     );
     let rows = file
         .read_u32::<BigEndian>()
-        .expect(&format!("Unable to number of rows from {:?}.", path)) as usize;
+        .unwrap_or_else(|_| panic!("Unable to number of rows from {:?}.", path))
+        as usize;
     assert!(
         ROWS == rows,
         format!("Expected rows length of {} got {}.", ROWS, rows)
     );
     let cols = file
         .read_u32::<BigEndian>()
-        .expect(&format!("Unable to number of columns from {:?}.", path)) as usize;
+        .unwrap_or_else(|_| panic!("Unable to number of columns from {:?}.", path))
+        as usize;
     assert!(
         COLS == cols,
         format!("Expected cols length of {} got {}.", COLS, cols)

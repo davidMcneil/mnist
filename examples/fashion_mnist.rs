@@ -8,7 +8,7 @@ use mnist::*;
 // minifb requires `$ sudo apt install libxkbcommon-dev libwayland-cursor0 libwayland-dev`
 
 fn main() {
-    let (trn_size, rows, cols) = (50_000, 28, 28);
+    let (trn_size, _rows, _cols) = (50_000, 28, 28);
 
     // Deconstruct the returned Mnist struct.
     let Mnist {
