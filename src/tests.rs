@@ -2,15 +2,17 @@
 
 extern crate rulinalg;
 
-use super::*;
 use self::rulinalg::matrix::{BaseMatrix, BaseMatrixMut, Matrix};
+use super::*;
 
 #[test]
 fn test_example() {
     let (trn_size, rows, cols) = (50_000, 28, 28);
 
     // Deconstruct the returned Mnist struct.
-    let Mnist { trn_img, trn_lbl, .. } = MnistBuilder::new()
+    let Mnist {
+        trn_img, trn_lbl, ..
+    } = MnistBuilder::new()
         .label_format_digit()
         .training_set_length(trn_size)
         .validation_set_length(10_000)
@@ -33,7 +35,8 @@ fn test_example() {
     let trn_img: Matrix<f32> = trn_img.try_into().unwrap() / 255.0;
 
     // Get the image of the first digit and round the values to the nearest tenth.
-    let first_image = trn_img.select_rows(&row_indexes)
+    let first_image = trn_img
+        .select_rows(&row_indexes)
         .apply(&|p| (p * 10.0).round() / 10.0);
     println!("The image looks like... \n{}", first_image);
 }
@@ -75,7 +78,8 @@ fn test_01() {
 
 #[test]
 #[should_panic(
-    expected = "Total data set length (70001) greater than maximum possible length (70000).")]
+    expected = "Total data set length (70001) greater than maximum possible length (70000)."
+)]
 fn test_02() {
     let _ = MnistBuilder::new()
         .training_set_length(50_001)
@@ -86,7 +90,8 @@ fn test_02() {
 
 #[test]
 #[should_panic(
-    expected = "Total data set length (70001) greater than maximum possible length (70000).")]
+    expected = "Total data set length (70001) greater than maximum possible length (70000)."
+)]
 fn test_03() {
     let _ = MnistBuilder::new()
         .training_set_length(50_000)
@@ -97,7 +102,8 @@ fn test_03() {
 
 #[test]
 #[should_panic(
-    expected = "Total data set length (70001) greater than maximum possible length (70000).")]
+    expected = "Total data set length (70001) greater than maximum possible length (70000)."
+)]
 fn test_04() {
     let _ = MnistBuilder::new()
         .training_set_length(50_000)
@@ -108,7 +114,8 @@ fn test_04() {
 
 #[test]
 #[should_panic(
-    expected = "Total data set length (70300) greater than maximum possible length (70000).")]
+    expected = "Total data set length (70300) greater than maximum possible length (70000)."
+)]
 fn test_05() {
     let _ = MnistBuilder::new()
         .training_set_length(50_100)
@@ -142,7 +149,8 @@ fn test_06() {
 
 #[test]
 #[should_panic(
-    expected = "Total data set length (70001) greater than maximum possible length (70000).")]
+    expected = "Total data set length (70001) greater than maximum possible length (70000)."
+)]
 fn test_07() {
     let _ = MnistBuilder::new()
         .training_set_length(50_000)
@@ -153,16 +161,14 @@ fn test_07() {
 
 #[test]
 #[should_panic(
-    expected = "Unable to find path to images at \"wrong/path/train-images-idx3-ubyte\".")]
+    expected = "Unable to find path to images at \"wrong/path/train-images-idx3-ubyte\"."
+)]
 fn test_08() {
-    let _ = MnistBuilder::new()
-        .base_path("wrong/path")
-        .finalize();
+    let _ = MnistBuilder::new().base_path("wrong/path").finalize();
 }
 
 #[test]
-#[should_panic(
-    expected = "Unable to find path to images at \"data/test\".")]
+#[should_panic(expected = "Unable to find path to images at \"data/test\".")]
 fn test_09() {
     let _ = MnistBuilder::new()
         .training_images_filename("test")
@@ -170,8 +176,7 @@ fn test_09() {
 }
 
 #[test]
-#[should_panic(
-    expected = "Unable to find path to labels at \"data/test\".")]
+#[should_panic(expected = "Unable to find path to labels at \"data/test\".")]
 fn test_10() {
     let _ = MnistBuilder::new()
         .training_labels_filename("test")
@@ -179,21 +184,15 @@ fn test_10() {
 }
 
 #[test]
-#[should_panic(
-    expected = "Unable to find path to images at \"data/test\".")]
+#[should_panic(expected = "Unable to find path to images at \"data/test\".")]
 fn test_11() {
-    let _ = MnistBuilder::new()
-        .test_images_filename("test")
-        .finalize();
+    let _ = MnistBuilder::new().test_images_filename("test").finalize();
 }
 
 #[test]
-#[should_panic(
-    expected = "Unable to find path to labels at \"data/test\".")]
+#[should_panic(expected = "Unable to find path to labels at \"data/test\".")]
 fn test_12() {
-    let _ = MnistBuilder::new()
-        .test_labels_filename("test")
-        .finalize();
+    let _ = MnistBuilder::new().test_labels_filename("test").finalize();
 }
 
 #[test]
@@ -203,14 +202,7 @@ fn normalize_vector() {
     let v: Vec<u8> = vec![0, 1, 2, 127, 128, 129, 254, 255];
     let normalized_v: Vec<f32> = normalize_vector(&v);
     let expected: Vec<f32> = vec![
-        0.0,
-        0.00392157,
-        0.00784314,
-        0.49803922,
-        0.50196078,
-        0.50588235,
-        0.99607843,
-        1.0,
+        0.0, 0.00392157, 0.00784314, 0.49803922, 0.50196078, 0.50588235, 0.99607843, 1.0,
     ];
 
     expected

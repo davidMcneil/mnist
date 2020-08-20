@@ -1,5 +1,5 @@
 # MNIST
-A crate for parsing the [MNIST](http://yann.lecun.com/exdb/mnist/) data set into vectors to be
+A crate for parsing the [MNIST](http://yann.lecun.com/exdb/mnist/) and [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) data set into vectors to be
 used by Rust programs.
 
 * [Crate](https://crates.io/crates/mnist)
@@ -54,4 +54,18 @@ fn main() {
         .apply(&|p| (p * 10.0).round() / 10.0);
     println!("The image looks like... \n{}", first_image);
 }
+```
+
+## Fashion MNIST
+The Fasion MNIST [dataset](https://github.com/zalandoresearch/fashion-mnist) offers a similarly-formatted 
+drop-in replacement dataset for the original MNIST set, but typically poses a more difficult classification challenge that handwritten numbers. 
+
+An example of downloading this dataset may be found by running: 
+```sh
+$ cargo run --features download --example fashion_mnist
+```
+This example uses the [minifb](https://github.com/emoon/rust_minifb) library to display the parsed images,
+and may require the installation of certain dependencies. On an Ubuntu-like system, this may be done via:
+```sh
+$ sudo apt install libxkbcommon-dev libwayland-cursor0 libwayland-dev
 ```

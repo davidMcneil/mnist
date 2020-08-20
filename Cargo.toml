@@ -12,6 +12,7 @@ exclude = [
     "data/*",
     "data_sets/*",
 ]
+edition = "2018"
 
 [features]
 default = []
@@ -21,8 +22,10 @@ download = ["reqwest", "flate2"]
 byteorder = "1.0.0"
 
 # Used to download datasets
-reqwest = {version = "0.8.8", optional = true}
+reqwest = {version = "0.10", optional = true, features = ["blocking"]}
 flate2 = {version = "1.0.2", optional = true, features = ["rust_backend"], default-features = false}
 
 [dev-dependencies]
 rulinalg = "0.4.1"
+# minifb is used to visualize datasets in a pop-up window
+minifb = "0.17"
