@@ -24,8 +24,7 @@ fn main() {
         .training_set_length(50_000)
         .validation_set_length(10_000)
         .test_set_length(10_000)
-        .finalize()
-        ;
+        .finalize();
 
     let image_num = 0;
     // Can use an Array2 or Array3 here (Array3 for visualization)
