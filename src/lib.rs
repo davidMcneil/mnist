@@ -45,7 +45,7 @@
 //!
 //! ## Examples
 //! ```rust,no_run
-//! 
+//!
 //! use mnist::*;
 //! use ndarray::prelude::*;
 //!fn main() {

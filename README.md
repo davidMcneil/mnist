@@ -47,6 +47,7 @@ fn main() {
     let _test_labels: Array2<f32> = Array2::from_shape_vec((10_000, 1), tst_lbl)
         .expect("Error converting testing labels to Array2 struct")
         .map(|x| *x as f32);
+}
 ```
 
 ## Fashion MNIST

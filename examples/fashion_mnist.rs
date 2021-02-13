@@ -1,9 +1,8 @@
-
 extern crate mnist;
+use image::*;
 use mnist::*;
 use ndarray::prelude::*;
 use show_image::{make_window_full, Event, WindowOptions};
-use image::*;
 
 fn main() {
     let (trn_size, _rows, _cols) = (50_000, 28, 28);
@@ -23,7 +22,6 @@ fn main() {
 
     let item_num = 3;
     return_item_description_from_number(trn_lbl[item_num]);
-
 
     let train_data = Array3::from_shape_vec((50_000, 28, 28), trn_img)
         .expect("Error converting images to Array3 struct")
@@ -48,7 +46,6 @@ fn main() {
     }
 
     show_image::stop().unwrap();
-
 }
 
 fn return_item_description_from_number(val: u8) {
