@@ -7,53 +7,46 @@ used by Rust programs.
 
 ## Example
 ```rust
-extern crate mnist;
-extern crate rulinalg;
-
-use mnist::{Mnist, MnistBuilder};
-use rulinalg::matrix::{BaseMatrix, BaseMatrixMut, Matrix};
+use mnist::*;
+use ndarray::prelude::*;
 
 fn main() {
-    let (trn_size, rows, cols) = (50_000, 28, 28);
 
     // Deconstruct the returned Mnist struct.
-    let Mnist { trn_img, trn_lbl, .. } = MnistBuilder::new()
+    let Mnist {
+        trn_img,
+        trn_lbl,
+        tst_img,
+     tst_lbl,
+        ..
+    } = MnistBuilder::new()
         .label_format_digit()
-        .training_set_length(trn_size)
+        .training_set_length(50_000)
         .validation_set_length(10_000)
         .test_set_length(10_000)
-        .finalize();
+        .finalize()
+        ;
 
-    // Call `normalize()` on the return value of `finalize()` to get
-    // Vec<f32> normalized values for the pixels instead of grayscale (bytes):
-    // let NormalizedMnist { trn_img, trn_lbl, .. } = MnistBuilder::new()
-    //     .label_format_digit()
-    //     .training_set_length(trn_size)
-    //     .validation_set_length(10_000)
-    //     .test_set_length(10_000)
-    //     .finalize()
-    //     .normalize();
+    let image_num = 0;
+    // Can use an Array2 or Array3 here (Array3 for visualization)
+    let train_data = Array3::from_shape_vec((50_000, 28, 28), trn_img)
+        .expect("Error converting images to Array3 struct")
+        .map(|x| *x as f32 / 256.0);
+    println!("{:#.1?}\n",train_data.slice(s![image_num, .., ..]));
 
-    // Get the label of the first digit.
-    let first_label = trn_lbl[0];
-    println!("The first digit is a {}.", first_label);
+    // Convert the returned Mnist struct to Array2 format
+    let train_labels: Array2<f32> = Array2::from_shape_vec((50_000, 1), trn_lbl)
+        .expect("Error converting training labels to Array2 struct")
+        .map(|x| *x as f32);
+    println!("The first digit is a {:?}",train_labels.slice(s![image_num, ..]) );
 
-    // Convert the flattened training images vector to a matrix.
-    let trn_img = Matrix::new((trn_size * rows) as usize, cols as usize, trn_img);
+    let _test_data = Array3::from_shape_vec((10_000, 28, 28), tst_img)
+        .expect("Error converting images to Array3 struct")
+        .map(|x| *x as f32 / 256.);
 
-    // Get the image of the first digit.
-    let row_indexes = (0..27).collect::<Vec<_>>();
-    let first_image = trn_img.select_rows(&row_indexes);
-    println!("The image looks like... \n{}", first_image);
-
-    // Convert the training images to f32 values scaled between 0 and 1.
-    let trn_img: Matrix<f32> = trn_img.try_into().unwrap() / 255.0;
-
-    // Get the image of the first digit and round the values to the nearest tenth.
-    let first_image = trn_img.select_rows(&row_indexes)
-        .apply(&|p| (p * 10.0).round() / 10.0);
-    println!("The image looks like... \n{}", first_image);
-}
+    let _test_labels: Array2<f32> = Array2::from_shape_vec((10_000, 1), tst_lbl)
+        .expect("Error converting testing labels to Array2 struct")
+        .map(|x| *x as f32);
 ```
 
 ## Fashion MNIST
@@ -63,9 +56,4 @@ drop-in replacement dataset for the original MNIST set, but typically poses a mo
 An example of downloading this dataset may be found by running: 
 ```sh
 $ cargo run --features download --example fashion_mnist
-```
-This example uses the [minifb](https://github.com/emoon/rust_minifb) library to display the parsed images,
-and may require the installation of certain dependencies. On an Ubuntu-like system, this may be done via:
-```sh
-$ sudo apt install libxkbcommon-dev libwayland-cursor0 libwayland-dev
 ```

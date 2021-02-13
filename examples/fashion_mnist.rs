@@ -5,7 +5,6 @@ use ndarray::prelude::*;
 use show_image::{make_window_full, Event, WindowOptions};
 use image::*;
 
-
 fn main() {
     let (trn_size, _rows, _cols) = (50_000, 28, 28);
 
@@ -13,13 +12,13 @@ fn main() {
     let Mnist {
         trn_img, trn_lbl, ..
     } = MnistBuilder::new()
+        .use_fashion_data() // Comment out this and the changed `.base_path()` to run on the original MNIST
         .base_path("data/fashion/") // Comment out this and `use_fashion_data()` to run on the original MNIST
         .label_format_digit()
         .training_set_length(trn_size)
         .validation_set_length(10_000)
         .test_set_length(10_000)
         .download_and_extract()
-        .use_fashion_data() // Commnent out this and the changed `.base_path()` to run on the original MNIST
         .finalize();
 
     let item_num = 3;
@@ -29,7 +28,7 @@ fn main() {
     let train_data = Array3::from_shape_vec((50_000, 28, 28), trn_img)
         .expect("Error converting images to Array3 struct")
         .mapv(|x| x as f32 / 256.);
-        
+
     let image = bw_ndarray2_to_rgb_image(train_data.slice(s![item_num, .., ..]).to_owned());
     let window_options = WindowOptions {
         name: "image".to_string(),

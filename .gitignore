@@ -1,4 +1,4 @@
 target
 target2
 Cargo.lock
-data/fashion
+data/*
