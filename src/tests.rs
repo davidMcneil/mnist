@@ -1,44 +1,46 @@
 #![cfg(test)]
 
-extern crate rulinalg;
-
-use self::rulinalg::matrix::{BaseMatrix, BaseMatrixMut, Matrix};
 use super::*;
+use ndarray::prelude::*;
 
 #[test]
 fn test_example() {
-    let (trn_size, rows, cols) = (50_000, 28, 28);
 
     // Deconstruct the returned Mnist struct.
     let Mnist {
-        trn_img, trn_lbl, ..
+        trn_img,
+        trn_lbl,
+        tst_img,
+        tst_lbl,
+        ..
     } = MnistBuilder::new()
         .label_format_digit()
-        .training_set_length(trn_size)
+        .training_set_length(50_000)
         .validation_set_length(10_000)
         .test_set_length(10_000)
         .finalize();
 
-    // Get the label of the first digit.
-    let first_label = trn_lbl[0];
-    println!("The first digit is a {}.", first_label);
+    let image_num = 0;
+    // Can use an Array2 or Array3 here (Array3 for visualization)
+    let train_data = Array3::from_shape_vec((50_000, 28, 28), trn_img)
+        .expect("Error converting images to Array3 struct")
+        .map(|x| *x as f32 / 256.0);
+    println!("{:#.1?}\n",train_data.slice(s![image_num, .., ..]));
 
-    // Convert the flattened training images vector to a matrix.
-    let trn_img = Matrix::new((trn_size * rows) as usize, cols as usize, trn_img);
+    // Convert the returned Mnist struct to Array2 format
+    let train_labels: Array2<f32> = Array2::from_shape_vec((50_000, 1), trn_lbl)
+        .expect("Error converting training labels to Array2 struct")
+        .map(|x| *x as f32);
+    println!("The first digit is a {:?}",train_labels.slice(s![image_num, ..]) );
 
-    // Get the image of the first digit.
-    let row_indexes = (0..27).collect::<Vec<_>>();
-    let first_image = trn_img.select_rows(&row_indexes);
-    println!("The image looks like... \n{}", first_image);
+    let _test_data = Array3::from_shape_vec((10_000, 28, 28), tst_img)
+        .expect("Error converting images to Array3 struct")
+        .map(|x| *x as f32 / 256.);
 
-    // Convert the training images to f32 values scaled between 0 and 1.
-    let trn_img: Matrix<f32> = trn_img.try_into().unwrap() / 255.0;
-
-    // Get the image of the first digit and round the values to the nearest tenth.
-    let first_image = trn_img
-        .select_rows(&row_indexes)
-        .apply(&|p| (p * 10.0).round() / 10.0);
-    println!("The image looks like... \n{}", first_image);
+    let _test_labels: Array2<f32> = Array2::from_shape_vec((10_000, 1), tst_lbl)
+        .expect("Error converting testing labels to Array2 struct")
+        .map(|x| *x as f32);
+    
 }
 
 #[test]
