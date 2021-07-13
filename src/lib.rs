@@ -101,6 +101,8 @@ use std::io::prelude::*;
 use std::path::Path;
 
 static BASE_PATH: &str = "data/";
+static BASE_URL: &str = "http://yann.lecun.com/exdb/mnist";
+static FASHION_BASE_URL: &str = "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com";
 static TRN_IMG_FILENAME: &str = "train-images-idx3-ubyte";
 static TRN_LBL_FILENAME: &str = "train-labels-idx1-ubyte";
 static TST_IMG_FILENAME: &str = "t10k-images-idx3-ubyte";
@@ -161,6 +163,7 @@ pub struct MnistBuilder<'a> {
     tst_img_filename: &'a str,
     tst_lbl_filename: &'a str,
     download_and_extract: bool,
+    base_url: &'a str,
     use_fashion_data: bool,
 }
 
@@ -185,6 +188,7 @@ impl<'a> MnistBuilder<'a> {
             tst_img_filename: TST_IMG_FILENAME,
             tst_lbl_filename: TST_LBL_FILENAME,
             download_and_extract: false,
+            base_url: BASE_URL,
             use_fashion_data: false,
         }
     }
@@ -367,6 +371,22 @@ impl<'a> MnistBuilder<'a> {
         self
     }
 
+    /// Download the .gz files from the specified url rather than the standard one
+    ///
+    /// # Examples
+    /// ```rust,no_run
+    /// # use mnist::MnistBuilder;
+    /// let mnist = MnistBuilder::new()
+    ///     .base_url("<desired_url_here>")
+    ///     .download_and_extract()
+    ///     .finalize();
+    /// ```
+    pub fn base_url(&mut self, base_url: &'a str) -> &mut MnistBuilder<'a> {
+        self.base_url = base_url;
+
+        self
+    }
+
     /// Get the data according to the specified configuration.
     ///
     ///
@@ -381,8 +401,18 @@ impl<'a> MnistBuilder<'a> {
     /// If `trn_len + val_len + tst_len > 70,000`.
     pub fn finalize(&self) -> Mnist {
         if self.download_and_extract {
+            let base_url = if self.use_fashion_data {
+                FASHION_BASE_URL
+            }
+            else if self.base_url != BASE_URL {
+                self.base_url
+            }
+            else {
+                BASE_URL
+            };
+
             #[cfg(feature = "download")]
-            download::download_and_extract(&self.base_path, self.use_fashion_data).unwrap();
+            download::download_and_extract(base_url, &self.base_path, self.use_fashion_data).unwrap();
             #[cfg(not(feature = "download"))]
             {
                 println!("WARNING: Download disabled.");
