@@ -1,4 +1,3 @@
-extern crate mnist;
 use image::*;
 use mnist::*;
 use ndarray::prelude::*;

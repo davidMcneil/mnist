@@ -6,7 +6,6 @@ use std::{fs, io};
 
 use curl::easy::Easy;
 use std::fs::File;
-// use std::io::{stdout, Write};
 
 use pbr::ProgressBar;
 use std::convert::TryInto;
@@ -33,7 +32,11 @@ const ARCHIVE_DOWNLOAD_SIZES: &[usize] = &[
     ARCHIVE_TEST_LABELS_SIZE,
 ];
 
-pub(super) fn download_and_extract(base_url: &str, base_path: &str, use_fashion_data: bool) -> Result<(), String> {
+pub(super) fn download_and_extract(
+    base_url: &str,
+    base_path: &str,
+    use_fashion_data: bool,
+) -> Result<(), String> {
     let download_dir = PathBuf::from(base_path);
     if !download_dir.exists() {
         println!(
@@ -55,8 +58,12 @@ pub(super) fn download_and_extract(base_url: &str, base_path: &str, use_fashion_
     Ok(())
 }
 
-fn download(base_url: &str, archive: &str, download_dir: &Path, use_fashion_data: bool) -> Result<(), String> {
-    
+fn download(
+    base_url: &str,
+    archive: &str,
+    download_dir: &Path,
+    use_fashion_data: bool,
+) -> Result<(), String> {
     let mut easy = Easy::new();
     for i in 0..4 {
         let archive = ARCHIVES_TO_DOWNLOAD[i];
@@ -67,25 +74,24 @@ fn download(base_url: &str, archive: &str, download_dir: &Path, use_fashion_data
                 "  File {:?} already exists, skipping downloading.",
                 file_name
             );
-        }
-        else {
+        } else {
             println!(
                 "- Downloading from file from {} and saving to file as: {}",
-                url.to_str().unwrap(), file_name
+                url.to_str().unwrap(),
+                file_name
             );
-    
+
             let mut file = File::create(file_name.clone()).unwrap();
-    
-            
+
             let pb = match cfg!(unix) {
                 true => {
                     use std::os::unix::fs::MetadataExt;
                     let full_size = ARCHIVE_DOWNLOAD_SIZES[i];
-    
+
                     let pb_thread = thread::spawn(move || {
                         let mut pb = ProgressBar::new(full_size.try_into().unwrap());
                         pb.format("╢=> ╟");
-    
+
                         let mut current_size = 0;
                         while current_size < full_size {
                             let meta = fs::metadata(file_name.clone())
@@ -95,9 +101,8 @@ fn download(base_url: &str, archive: &str, download_dir: &Path, use_fashion_data
                             thread::sleep_ms(10);
                         }
                         pb.finish_println(" ");
-                        
                     });
-    
+
                     easy.url(&url.to_str().unwrap()).unwrap();
                     easy.write_function(move |data| {
                         file.write_all(data).unwrap();
@@ -110,7 +115,6 @@ fn download(base_url: &str, archive: &str, download_dir: &Path, use_fashion_data
                 _ => (),
             };
         }
-        
     }
 
     Ok(())

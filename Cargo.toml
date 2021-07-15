@@ -29,5 +29,5 @@ flate2 = {version = "1.0.2", optional = true, features = ["rust_backend"], defau
 [dev-dependencies]
 ndarray = "0.14"
 image = "0.23"
-# minifb is used to visualize datasets in a pop-up window
+# show-image is used to visualize datasets in a pop-up window
 show-image = {version = "0.6", features = ["image"]}
