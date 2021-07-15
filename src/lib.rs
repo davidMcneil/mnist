@@ -403,16 +403,15 @@ impl<'a> MnistBuilder<'a> {
         if self.download_and_extract {
             let base_url = if self.use_fashion_data {
                 FASHION_BASE_URL
-            }
-            else if self.base_url != BASE_URL {
+            } else if self.base_url != BASE_URL {
                 self.base_url
-            }
-            else {
+            } else {
                 BASE_URL
             };
 
             #[cfg(feature = "download")]
-            download::download_and_extract(base_url, &self.base_path, self.use_fashion_data).unwrap();
+            download::download_and_extract(base_url, &self.base_path, self.use_fashion_data)
+                .unwrap();
             #[cfg(not(feature = "download"))]
             {
                 println!("WARNING: Download disabled.");
