@@ -45,43 +45,47 @@
 //!
 //! ## Examples
 //! ```rust,no_run
-//! extern crate mnist;
-//! extern crate rulinalg;
 //!
-//! use mnist::{Mnist, MnistBuilder};
-//! use rulinalg::matrix::{BaseMatrix, BaseMatrixMut, Matrix};
+//! use mnist::*;
+//! use ndarray::prelude::*;
+//!fn main() {
 //!
-//! fn main() {
-//!     let (trn_size, rows, cols) = (50_000, 28, 28);
+//!    // Deconstruct the returned Mnist struct.
+//!    let Mnist {
+//!        trn_img,
+//!        trn_lbl,
+//!        tst_img,
+//!        tst_lbl,
+//!        ..
+//!    } = MnistBuilder::new()
+//!        .label_format_digit()
+//!        .training_set_length(50_000)
+//!        .validation_set_length(10_000)
+//!        .test_set_length(10_000)
+//!        .finalize();
 //!
-//!     // Deconstruct the returned Mnist struct.
-//!     let Mnist { trn_img, trn_lbl, .. } = MnistBuilder::new()
-//!         .label_format_digit()
-//!         .training_set_length(trn_size)
-//!         .validation_set_length(10_000)
-//!         .test_set_length(10_000)
-//!         .finalize();
+//!    let image_num = 0;
+//!    // Can use an Array2 or Array3 here (Array3 for visualization)
+//!    let train_data = Array3::from_shape_vec((50_000, 28, 28), trn_img)
+//!        .expect("Error converting images to Array3 struct")
+//!        .map(|x| *x as f32 / 256.0);
+//!    println!("{:#.1?}\n",train_data.slice(s![image_num, .., ..]));
 //!
-//!     // Get the label of the first digit.
-//!     let first_label = trn_lbl[0];
-//!     println!("The first digit is a {}.", first_label);
+//!    // Convert the returned Mnist struct to Array2 format
+//!    let train_labels: Array2<f32> = Array2::from_shape_vec((50_000, 1), trn_lbl)
+//!        .expect("Error converting training labels to Array2 struct")
+//!        .map(|x| *x as f32);
+//!    println!("The first digit is a {:?}",train_labels.slice(s![image_num, ..]) );
 //!
-//!     // Convert the flattened training images vector to a matrix.
-//!     let trn_img = Matrix::new((trn_size * rows) as usize, cols as usize, trn_img);
+//!    let _test_data = Array3::from_shape_vec((10_000, 28, 28), tst_img)
+//!        .expect("Error converting images to Array3 struct")
+//!        .map(|x| *x as f32 / 256.);
 //!
-//!     // Get the image of the first digit.
-//!     let row_indexes = (0..27).collect::<Vec<_>>();
-//!     let first_image = trn_img.select_rows(&row_indexes);
-//!     println!("The image looks like... \n{}", first_image);
-//!
-//!     // Convert the training images to f32 values scaled between 0 and 1.
-//!     let trn_img: Matrix<f32> = trn_img.try_into().unwrap() / 255.0;
-//!
-//!     // Get the image of the first digit and round the values to the nearest tenth.
-//!     let first_image = trn_img.select_rows(&row_indexes)
-//!         .apply(&|p| (p * 10.0).round() / 10.0);
-//!     println!("The image looks like... \n{}", first_image);
-//! }
+//!    let _test_labels: Array2<f32> = Array2::from_shape_vec((10_000, 1), tst_lbl)
+//!        .expect("Error converting testing labels to Array2 struct")
+//!        .map(|x| *x as f32);
+//!    
+//!}
 //! ```
 
 #![doc(test(attr(allow(unused_variables), deny(warnings))))]
@@ -97,6 +101,8 @@ use std::io::prelude::*;
 use std::path::Path;
 
 static BASE_PATH: &str = "data/";
+static BASE_URL: &str = "http://yann.lecun.com/exdb/mnist";
+static FASHION_BASE_URL: &str = "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com";
 static TRN_IMG_FILENAME: &str = "train-images-idx3-ubyte";
 static TRN_LBL_FILENAME: &str = "train-labels-idx1-ubyte";
 static TST_IMG_FILENAME: &str = "t10k-images-idx3-ubyte";
@@ -157,6 +163,7 @@ pub struct MnistBuilder<'a> {
     tst_img_filename: &'a str,
     tst_lbl_filename: &'a str,
     download_and_extract: bool,
+    base_url: &'a str,
     use_fashion_data: bool,
 }
 
@@ -181,6 +188,7 @@ impl<'a> MnistBuilder<'a> {
             tst_img_filename: TST_IMG_FILENAME,
             tst_lbl_filename: TST_LBL_FILENAME,
             download_and_extract: false,
+            base_url: BASE_URL,
             use_fashion_data: false,
         }
     }
@@ -363,6 +371,22 @@ impl<'a> MnistBuilder<'a> {
         self
     }
 
+    /// Download the .gz files from the specified url rather than the standard one
+    ///
+    /// # Examples
+    /// ```rust,no_run
+    /// # use mnist::MnistBuilder;
+    /// let mnist = MnistBuilder::new()
+    ///     .base_url("<desired_url_here>")
+    ///     .download_and_extract()
+    ///     .finalize();
+    /// ```
+    pub fn base_url(&mut self, base_url: &'a str) -> &mut MnistBuilder<'a> {
+        self.base_url = base_url;
+
+        self
+    }
+
     /// Get the data according to the specified configuration.
     ///
     ///
@@ -377,8 +401,17 @@ impl<'a> MnistBuilder<'a> {
     /// If `trn_len + val_len + tst_len > 70,000`.
     pub fn finalize(&self) -> Mnist {
         if self.download_and_extract {
+            let base_url = if self.use_fashion_data {
+                FASHION_BASE_URL
+            } else if self.base_url != BASE_URL {
+                self.base_url
+            } else {
+                BASE_URL
+            };
+
             #[cfg(feature = "download")]
-            download::download_and_extract(&self.base_path, self.use_fashion_data).unwrap();
+            download::download_and_extract(base_url, &self.base_path, self.use_fashion_data)
+                .unwrap();
             #[cfg(not(feature = "download"))]
             {
                 println!("WARNING: Download disabled.");
