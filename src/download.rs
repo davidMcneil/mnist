@@ -83,37 +83,36 @@ fn download(
 
             let mut file = File::create(file_name.clone()).unwrap();
 
-            let pb = match cfg!(unix) {
-                true => {
-                    use std::os::unix::fs::MetadataExt;
-                    let full_size = ARCHIVE_DOWNLOAD_SIZES[i];
+            #[cfg(target_family = "unix")]
+            use std::os::unix::fs::MetadataExt;
+            #[cfg(target_family = "windows")]
+            use std::os::windows::fs::MetadataExt;
 
-                    let pb_thread = thread::spawn(move || {
-                        let mut pb = ProgressBar::new(full_size.try_into().unwrap());
-                        pb.format("╢=> ╟");
+            let full_size = ARCHIVE_DOWNLOAD_SIZES[i];
 
-                        let mut current_size = 0;
-                        while current_size < full_size {
-                            let meta = fs::metadata(file_name.clone())
-                                .expect(&format!("Couldn't get metadata on {:?}", file_name));
-                            current_size = meta.size() as usize;
-                            pb.set(current_size.try_into().unwrap());
-                            thread::sleep_ms(10);
-                        }
-                        pb.finish_println(" ");
-                    });
+            let pb_thread = thread::spawn(move || {
+                let mut pb = ProgressBar::new(full_size.try_into().unwrap());
+                pb.format("╢=> ╟");
 
-                    easy.url(&url.to_str().unwrap()).unwrap();
-                    easy.write_function(move |data| {
-                        file.write_all(data).unwrap();
-                        Ok(data.len())
-                    })
-                    .unwrap();
-                    easy.perform().unwrap();
-                    pb_thread.join().unwrap();
+                let mut current_size = 0;
+                while current_size < full_size {
+                    let meta = fs::metadata(file_name.clone())
+                        .expect(&format!("Couldn't get metadata on {:?}", file_name));
+                    current_size = meta.size() as usize;
+                    pb.set(current_size.try_into().unwrap());
+                    thread::sleep_ms(10);
                 }
-                _ => (),
-            };
+                pb.finish_println(" ");
+            });
+
+            easy.url(&url.to_str().unwrap()).unwrap();
+            easy.write_function(move |data| {
+                file.write_all(data).unwrap();
+                Ok(data.len())
+            })
+            .unwrap();
+            easy.perform().unwrap();
+            pb_thread.join().unwrap();
         }
     }
 
