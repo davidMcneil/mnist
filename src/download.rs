@@ -98,7 +98,12 @@ fn download(
                 while current_size < full_size {
                     let meta = fs::metadata(file_name.clone())
                         .expect(&format!("Couldn't get metadata on {:?}", file_name));
+                    
+                    #[cfg(target_family = "unix")]
                     current_size = meta.size() as usize;
+                    #[cfg(target_family = "windows")]
+                    current_size = meta.file_size() as usize;
+                    
                     pb.set(current_size.try_into().unwrap());
                     thread::sleep_ms(10);
                 }
