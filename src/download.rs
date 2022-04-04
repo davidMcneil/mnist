@@ -11,6 +11,21 @@ use pbr::ProgressBar;
 use std::convert::TryInto;
 use std::thread;
 
+#[cfg(target_family = "unix")]
+use std::os::unix::fs::MetadataExt;
+#[cfg(target_family = "windows")]
+use std::os::windows::fs::MetadataExt;
+
+#[cfg(target_family = "unix")]
+fn file_size(meta: &MetadataExt) -> usize {
+    meta.size() as usize
+}
+
+#[cfg(target_family = "windows")]
+fn file_size(meta: &MetadataExt) -> usize {
+    meta.file_size() as usize
+}
+
 const ARCHIVE_TRAIN_IMAGES: &str = "train-images-idx3-ubyte.gz";
 const ARCHIVE_TRAIN_IMAGES_SIZE: usize = 9912422;
 const ARCHIVE_TRAIN_LABELS: &str = "train-labels-idx1-ubyte.gz";
@@ -82,14 +97,7 @@ fn download(
             );
 
             let mut file = File::create(file_name.clone()).unwrap();
-
-            #[cfg(target_family = "unix")]
-            use std::os::unix::fs::MetadataExt;
-            #[cfg(target_family = "windows")]
-            use std::os::windows::fs::MetadataExt;
-
             let full_size = ARCHIVE_DOWNLOAD_SIZES[i];
-
             let pb_thread = thread::spawn(move || {
                 let mut pb = ProgressBar::new(full_size.try_into().unwrap());
                 pb.format("╢=> ╟");
@@ -98,12 +106,9 @@ fn download(
                 while current_size < full_size {
                     let meta = fs::metadata(file_name.clone())
                         .expect(&format!("Couldn't get metadata on {:?}", file_name));
-                    
-                    #[cfg(target_family = "unix")]
-                    current_size = meta.size() as usize;
-                    #[cfg(target_family = "windows")]
-                    current_size = meta.file_size() as usize;
-                    
+
+                    current_size = file_size(&meta);
+
                     pb.set(current_size.try_into().unwrap());
                     thread::sleep_ms(10);
                 }
