@@ -11,6 +11,21 @@ use pbr::ProgressBar;
 use std::convert::TryInto;
 use std::thread;
 
+#[cfg(target_family = "unix")]
+use std::os::unix::fs::MetadataExt;
+#[cfg(target_family = "windows")]
+use std::os::windows::fs::MetadataExt;
+
+#[cfg(target_family = "unix")]
+fn file_size(meta: &MetadataExt) -> usize {
+    meta.size() as usize
+}
+
+#[cfg(target_family = "windows")]
+fn file_size(meta: &MetadataExt) -> usize {
+    meta.file_size() as usize
+}
+
 const ARCHIVE_TRAIN_IMAGES: &str = "train-images-idx3-ubyte.gz";
 const ARCHIVE_TRAIN_IMAGES_SIZE: usize = 9912422;
 const ARCHIVE_TRAIN_LABELS: &str = "train-labels-idx1-ubyte.gz";
@@ -82,38 +97,32 @@ fn download(
             );
 
             let mut file = File::create(file_name.clone()).unwrap();
+            let full_size = ARCHIVE_DOWNLOAD_SIZES[i];
+            let pb_thread = thread::spawn(move || {
+                let mut pb = ProgressBar::new(full_size.try_into().unwrap());
+                pb.format("╢=> ╟");
 
-            let pb = match cfg!(unix) {
-                true => {
-                    use std::os::unix::fs::MetadataExt;
-                    let full_size = ARCHIVE_DOWNLOAD_SIZES[i];
+                let mut current_size = 0;
+                while current_size < full_size {
+                    let meta = fs::metadata(file_name.clone())
+                        .expect(&format!("Couldn't get metadata on {:?}", file_name));
 
-                    let pb_thread = thread::spawn(move || {
-                        let mut pb = ProgressBar::new(full_size.try_into().unwrap());
-                        pb.format("╢=> ╟");
+                    current_size = file_size(&meta);
 
-                        let mut current_size = 0;
-                        while current_size < full_size {
-                            let meta = fs::metadata(file_name.clone())
-                                .expect(&format!("Couldn't get metadata on {:?}", file_name));
-                            current_size = meta.size() as usize;
-                            pb.set(current_size.try_into().unwrap());
-                            thread::sleep_ms(10);
-                        }
-                        pb.finish_println(" ");
-                    });
-
-                    easy.url(&url.to_str().unwrap()).unwrap();
-                    easy.write_function(move |data| {
-                        file.write_all(data).unwrap();
-                        Ok(data.len())
-                    })
-                    .unwrap();
-                    easy.perform().unwrap();
-                    pb_thread.join().unwrap();
+                    pb.set(current_size.try_into().unwrap());
+                    thread::sleep_ms(10);
                 }
-                _ => (),
-            };
+                pb.finish_println(" ");
+            });
+
+            easy.url(&url.to_str().unwrap()).unwrap();
+            easy.write_function(move |data| {
+                file.write_all(data).unwrap();
+                Ok(data.len())
+            })
+            .unwrap();
+            easy.perform().unwrap();
+            pb_thread.join().unwrap();
         }
     }
 
