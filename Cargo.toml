@@ -20,6 +20,7 @@ download = ["curl", "pbr", "flate2"]
 
 [dependencies]
 byteorder = "1.0.0"
+log = "0.4"
 
 # Used to download datasets
 curl = {version = "0.4", optional = true}
