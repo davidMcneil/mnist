@@ -34,17 +34,11 @@ const ARCHIVE_TEST_IMAGES: &str = "t10k-images-idx3-ubyte.gz";
 const ARCHIVE_TEST_IMAGES_SIZE: usize = 1648877;
 const ARCHIVE_TEST_LABELS: &str = "t10k-labels-idx1-ubyte.gz";
 const ARCHIVE_TEST_LABELS_SIZE: usize = 4542;
-const ARCHIVES_TO_DOWNLOAD: &[&str] = &[
-    ARCHIVE_TRAIN_IMAGES,
-    ARCHIVE_TRAIN_LABELS,
-    ARCHIVE_TEST_IMAGES,
-    ARCHIVE_TEST_LABELS,
-];
-const ARCHIVE_DOWNLOAD_SIZES: &[usize] = &[
-    ARCHIVE_TRAIN_IMAGES_SIZE,
-    ARCHIVE_TRAIN_LABELS_SIZE,
-    ARCHIVE_TEST_IMAGES_SIZE,
-    ARCHIVE_TEST_LABELS_SIZE,
+const ARCHIVES_TO_DOWNLOAD: &[(&str, usize)] = &[
+    (ARCHIVE_TRAIN_IMAGES, ARCHIVE_TRAIN_IMAGES_SIZE),
+    (ARCHIVE_TRAIN_LABELS, ARCHIVE_TRAIN_LABELS_SIZE),
+    (ARCHIVE_TEST_IMAGES, ARCHIVE_TEST_IMAGES_SIZE),
+    (ARCHIVE_TEST_LABELS, ARCHIVE_TEST_LABELS_SIZE),
 ];
 
 pub(super) fn download_and_extract(
@@ -65,10 +59,10 @@ pub(super) fn download_and_extract(
             ))
         })?;
     }
-    for archive in ARCHIVES_TO_DOWNLOAD {
+    for &(archive, size) in ARCHIVES_TO_DOWNLOAD {
         println!("Attempting to download and extract {}...", archive);
-        download(base_url, &archive, &download_dir, use_fashion_data)?;
-        extract(&archive, &download_dir)?;
+        download(base_url, archive, size, &download_dir, use_fashion_data)?;
+        extract(archive, &download_dir)?;
     }
     Ok(())
 }
@@ -76,54 +70,51 @@ pub(super) fn download_and_extract(
 fn download(
     base_url: &str,
     archive: &str,
+    full_size: usize,
     download_dir: &Path,
     use_fashion_data: bool,
 ) -> Result<(), String> {
     let mut easy = Easy::new();
-    for i in 0..4 {
-        let archive = ARCHIVES_TO_DOWNLOAD[i];
-        let url = Path::new(base_url).join(archive);
-        let file_name = download_dir.to_str().unwrap().to_owned() + archive; //.clone();
-        if Path::new(&file_name).exists() {
-            println!(
-                "  File {:?} already exists, skipping downloading.",
-                file_name
-            );
-        } else {
-            println!(
-                "- Downloading from file from {} and saving to file as: {}",
-                url.to_str().unwrap(),
-                file_name
-            );
+    let url = Path::new(base_url).join(archive);
+    let file_name = download_dir.to_str().unwrap().to_owned() + archive; //.clone();
+    if Path::new(&file_name).exists() {
+        println!(
+            "  File {:?} already exists, skipping downloading.",
+            file_name
+        );
+    } else {
+        println!(
+            "- Downloading from file from {} and saving to file as: {}",
+            url.to_str().unwrap(),
+            file_name
+        );
 
-            let mut file = File::create(file_name.clone()).unwrap();
-            let full_size = ARCHIVE_DOWNLOAD_SIZES[i];
-            let pb_thread = thread::spawn(move || {
-                let mut pb = ProgressBar::new(full_size.try_into().unwrap());
-                pb.format("╢=> ╟");
+        let mut file = File::create(file_name.clone()).unwrap();
+        let pb_thread = thread::spawn(move || {
+            let mut pb = ProgressBar::new(full_size.try_into().unwrap());
+            pb.format("╢=> ╟");
 
-                let mut current_size = 0;
-                while current_size < full_size {
-                    let meta = fs::metadata(file_name.clone())
-                        .expect(&format!("Couldn't get metadata on {:?}", file_name));
+            let mut current_size = 0;
+            while current_size < full_size {
+                let meta = fs::metadata(file_name.clone())
+                    .expect(&format!("Couldn't get metadata on {:?}", file_name));
 
-                    current_size = file_size(&meta);
+                current_size = file_size(&meta);
 
-                    pb.set(current_size.try_into().unwrap());
-                    thread::sleep_ms(10);
-                }
-                pb.finish_println(" ");
-            });
+                pb.set(current_size.try_into().unwrap());
+                thread::sleep_ms(10);
+            }
+            pb.finish_println(" ");
+        });
 
-            easy.url(&url.to_str().unwrap()).unwrap();
-            easy.write_function(move |data| {
-                file.write_all(data).unwrap();
-                Ok(data.len())
-            })
-            .unwrap();
-            easy.perform().unwrap();
-            pb_thread.join().unwrap();
-        }
+        easy.url(&url.to_str().unwrap()).unwrap();
+        easy.write_function(move |data| {
+            file.write_all(data).unwrap();
+            Ok(data.len())
+        })
+        .unwrap();
+        easy.perform().unwrap();
+        pb_thread.join().unwrap();
     }
 
     Ok(())
