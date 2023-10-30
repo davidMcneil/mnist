@@ -414,8 +414,8 @@ impl<'a> MnistBuilder<'a> {
                 .unwrap();
             #[cfg(not(feature = "download"))]
             {
-                println!("WARNING: Download disabled.");
-                println!("         Please use the mnist crate's 'download' feature to enable.");
+                log::warn!("WARNING: Download disabled.");
+                log::warn!("         Please use the mnist crate's 'download' feature to enable.");
             }
         }
 

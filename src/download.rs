@@ -11,6 +11,8 @@ use pbr::ProgressBar;
 use std::convert::TryInto;
 use std::thread;
 
+use log::Level;
+
 #[cfg(target_family = "unix")]
 use std::os::unix::fs::MetadataExt;
 #[cfg(target_family = "windows")]
@@ -54,7 +56,7 @@ pub(super) fn download_and_extract(
 ) -> Result<(), String> {
     let download_dir = PathBuf::from(base_path);
     if !download_dir.exists() {
-        println!(
+        log::info!(
             "Download directory {} does not exists. Creating....",
             download_dir.display()
         );
@@ -66,7 +68,7 @@ pub(super) fn download_and_extract(
         })?;
     }
     for archive in ARCHIVES_TO_DOWNLOAD {
-        println!("Attempting to download and extract {}...", archive);
+        log::info!("Attempting to download and extract {}...", archive);
         download(base_url, &archive, &download_dir, use_fashion_data)?;
         extract(&archive, &download_dir)?;
     }
@@ -85,12 +87,12 @@ fn download(
         let url = Path::new(base_url).join(archive);
         let file_name = download_dir.to_str().unwrap().to_owned() + archive; //.clone();
         if Path::new(&file_name).exists() {
-            println!(
+            log::info!(
                 "  File {:?} already exists, skipping downloading.",
                 file_name
             );
         } else {
-            println!(
+            log::info!(
                 "- Downloading from file from {} and saving to file as: {}",
                 url.to_str().unwrap(),
                 file_name
@@ -98,21 +100,23 @@ fn download(
 
             let mut file = File::create(file_name.clone()).unwrap();
             let full_size = ARCHIVE_DOWNLOAD_SIZES[i];
-            let pb_thread = thread::spawn(move || {
-                let mut pb = ProgressBar::new(full_size.try_into().unwrap());
-                pb.format("╢=> ╟");
+            let pb_thread = log::log_enabled!(Level::Info).then(|| {
+                thread::spawn(move || {
+                    let mut pb = ProgressBar::new(full_size.try_into().unwrap());
+                    pb.format("╢=> ╟");
 
-                let mut current_size = 0;
-                while current_size < full_size {
-                    let meta = fs::metadata(file_name.clone())
-                        .expect(&format!("Couldn't get metadata on {:?}", file_name));
+                    let mut current_size = 0;
+                    while current_size < full_size {
+                        let meta = fs::metadata(file_name.clone())
+                            .expect(&format!("Couldn't get metadata on {:?}", file_name));
 
-                    current_size = file_size(&meta);
+                        current_size = file_size(&meta);
 
-                    pb.set(current_size.try_into().unwrap());
-                    thread::sleep_ms(10);
-                }
-                pb.finish_println(" ");
+                        pb.set(current_size.try_into().unwrap());
+                        thread::sleep_ms(10);
+                    }
+                    pb.finish_println(" ");
+                })
             });
 
             easy.url(&url.to_str().unwrap()).unwrap();
@@ -122,7 +126,9 @@ fn download(
             })
             .unwrap();
             easy.perform().unwrap();
-            pb_thread.join().unwrap();
+            if let Some(thread) = pb_thread {
+                thread.join().unwrap();
+            }
         }
     }
 
@@ -133,12 +139,12 @@ fn extract(archive_name: &str, download_dir: &Path) -> Result<(), String> {
     let archive = download_dir.join(&archive_name);
     let extract_to = download_dir.join(&archive_name.replace(".gz", ""));
     if extract_to.exists() {
-        println!(
+        log::info!(
             "  Extracted file {:?} already exists, skipping extraction.",
             extract_to
         );
     } else {
-        println!("Extracting archive {:?} to {:?}...", archive, extract_to);
+        log::info!("Extracting archive {:?} to {:?}...", archive, extract_to);
         let file_in = fs::File::open(&archive)
             .or_else(|e| Err(format!("Failed to open archive {:?}: {:?}", archive, e)))?;
         let file_in = io::BufReader::new(file_in);
