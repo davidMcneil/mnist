@@ -13,6 +13,11 @@ use std::thread;
 
 use log::Level;
 
+use crate::TRN_IMG_FILENAME;
+use crate::TRN_LBL_FILENAME;
+use crate::TST_IMG_FILENAME;
+use crate::TST_LBL_FILENAME;
+
 #[cfg(target_family = "unix")]
 use std::os::unix::fs::MetadataExt;
 #[cfg(target_family = "windows")]
@@ -36,12 +41,6 @@ const ARCHIVE_TEST_IMAGES: &str = "t10k-images-idx3-ubyte.gz";
 const ARCHIVE_TEST_IMAGES_SIZE: usize = 1648877;
 const ARCHIVE_TEST_LABELS: &str = "t10k-labels-idx1-ubyte.gz";
 const ARCHIVE_TEST_LABELS_SIZE: usize = 4542;
-const ARCHIVES_TO_DOWNLOAD: &[(&str, usize)] = &[
-    (ARCHIVE_TRAIN_IMAGES, ARCHIVE_TRAIN_IMAGES_SIZE),
-    (ARCHIVE_TRAIN_LABELS, ARCHIVE_TRAIN_LABELS_SIZE),
-    (ARCHIVE_TEST_IMAGES, ARCHIVE_TEST_IMAGES_SIZE),
-    (ARCHIVE_TEST_LABELS, ARCHIVE_TEST_LABELS_SIZE),
-];
 
 pub(super) fn download_and_extract(
     base_url: &str,
@@ -62,10 +61,16 @@ pub(super) fn download_and_extract(
         })?;
     }
 
-    for &(archive, size) in ARCHIVES_TO_DOWNLOAD {
+    let ARCHIVES_TO_DOWNLOAD = &[
+      (ARCHIVE_TRAIN_IMAGES, ARCHIVE_TRAIN_IMAGES_SIZE, TRN_IMG_FILENAME),
+      (ARCHIVE_TRAIN_LABELS, ARCHIVE_TRAIN_LABELS_SIZE, TRN_LBL_FILENAME),
+      (ARCHIVE_TEST_IMAGES, ARCHIVE_TEST_IMAGES_SIZE, TST_IMG_FILENAME),
+      (ARCHIVE_TEST_LABELS, ARCHIVE_TEST_LABELS_SIZE, TST_LBL_FILENAME),
+    ];
+    for &(archive, size, file_name) in ARCHIVES_TO_DOWNLOAD {
         log::info!("Attempting to download and extract {}...", archive);
         download(base_url, archive, size, &download_dir, use_fashion_data)?;
-        extract(archive, &download_dir)?;
+        extract(archive, &download_dir, file_name)?;
     }
     Ok(())
 }
@@ -123,9 +128,9 @@ fn download(
     Ok(())
 }
 
-fn extract(archive_name: &str, download_dir: &Path) -> Result<(), String> {
+fn extract(archive_name: &str, download_dir: &Path, file_name: &str) -> Result<(), String> {
     let archive = download_dir.join(&archive_name);
-    let extract_to = download_dir.join(&archive_name.replace(".gz", ""));
+    let extract_to = download_dir.join(file_name);
     if extract_to.exists() {
         log::info!(
             "  Extracted file {:?} already exists, skipping extraction.",
