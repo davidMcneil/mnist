@@ -13,8 +13,8 @@
 //! these images belong to a test set.
 //!
 //! ## Setup
-//! The MNIST data set is a collection of four gzip files and can be found [here]
-//! (http://yann.lecun.com/exdb/mnist/). There is one file for each of the following: the training
+//! The MNIST data set is a collection of four gzip files and can be found [here](http://yann.lecun.com/exdb/mnist/). 
+//! There is one file for each of the following: the training
 //! set images, the training set labels, the test set images, and the test set labels. Because of
 //! space limitations, the files themselves could not be included in this crate. The four files must
 //! be downloaded and extracted. By default, they will be looked for in a "data" directory at the
